@@ -306,7 +306,7 @@ def get_user_bookings(user_id):
             "check_out": booking.check_out.strftime('%Y%m%d'),
             "guests": booking.guests,
             "status": booking.status,
-            "rooms": [{"id": room.room.id, "number": room.room.number} for room in booking.rooms]
+            "rooms": [{"id": room.room.id, "number": room.room.number, "type": room.room.room_type} for room in booking.rooms]
         } for booking in bookings]
         
         # Restituisce la lista delle prenotazioni
