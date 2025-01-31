@@ -1,3 +1,4 @@
+from socket import gethostname
 from flask import Flask, request, jsonify
 # Flask: Framework web leggero per creare applicazioni web in Python.
 # request: Modulo per gestire le richieste HTTP.
@@ -726,5 +727,6 @@ if __name__ == '__main__':
             print("Il database esiste già.")
             create_rooms()
 
-    # Avvia l'applicazione Flask in modalità debug
-    app.run(debug=True)
+# Necessario per deploy su pythonanywhere
+    if 'liveconsole' not in gethostname():
+        app.run()
