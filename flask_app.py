@@ -73,11 +73,11 @@ import os
 
 import secrets
 # secrets: Modulo per generare numeri casuali sicuri per la crittografia.
-# Ho utilizzato secrets per generare una chiave segreta casuale per il token JWT di backup alla mancanna di una chiave segreta nel file .env.
+# Ho utilizzato secrets per generare una chiave segreta di backup casuale per il token JWT  alla mancanna di una chiave segreta nel file env.
 
 import uuid
 # uuid: Modulo per generare identificatori univoci universali (UUID).
-# Ho dovuto implementare uuid perché in precedenza assegnavo un ID utente intero autoincrementale alla creazione dell'utente.
+# Ho implementato uuid perché in precedenza assegnavo un ID utente INT autoincrementale alla creazione dell'utente.
 # Questo creava problemi con il token JWT, poiché campo "subject" (user ID) all'interno del token decodificato doveva essere una stringa e non un intero.
 # Dopo aver perso qualche ora sul debug di questo errore, ho deciso di utilizzare UUID per generare un ID utente come stringa.
 # Questo ha risolto il problema, poiché UUID genera identificatori univoci in formato stringa, compatibili con i requisiti del token JWT.
@@ -651,12 +651,18 @@ def book():
     try:
         # Crea la prenotazione
         booking_details = create_booking(user_id, check_in, check_out, guests, room_types)
+        
+        # Recupera tutte le prenotazioni dell'utente
+        user_bookings = get_user_bookings(user_id)
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-    return jsonify(booking_details), 201
+    return jsonify({
+        "booking_details": booking_details,
+        "user_bookings": user_bookings
+    }), 201
 
 # Endpoint per cancellare una prenotazione
 @app.route('/cancel_booking', methods=['POST'])
