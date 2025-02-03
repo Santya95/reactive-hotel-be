@@ -294,19 +294,21 @@ def get_available_rooms(check_in_date, check_out_date):
         # Gestisce eventuali errori durante il recupero delle stanze disponibili
         raise Exception(f"Errore durante il recupero delle stanze disponibili: {e}")
 
+# Recupera le prenotazioni di un utente dal database dalla più recente
 def get_user_bookings(user_id):
     try:
-        # Recupera tutte le prenotazioni per un dato utente
-        bookings = Booking.query.filter_by(user_id=user_id).all()
+        # Recupera tutte le prenotazioni per un dato utente e le ordina per data di creazione decrescente
+        bookings = Booking.query.filter_by(user_id=user_id).order_by(Booking.created_at.desc()).all()
         
         # Crea una lista di dizionari con i dettagli delle prenotazioni
         bookings_list = [{
             "id": booking.id,
-            "check_in": booking.check_in.strftime('%Y%m%d'),
-            "check_out": booking.check_out.strftime('%Y%m%d'),
+            "check_in": booking.check_in.strftime('%Y/%m/%d'),
+            "check_out": booking.check_out.strftime('%Y/%m/%d'),
             "guests": booking.guests,
             "status": booking.status,
-            "rooms": [{"id": room.room.id, "number": room.room.number, "type": room.room.room_type} for room in booking.rooms]
+            "rooms": [{"id": room.room.id, "number": room.room.number, "type": room.room.room_type} for room in booking.rooms],
+            "total_price": sum(room.room.price * (booking.check_out - booking.check_in).days for room in booking.rooms)
         } for booking in bookings]
         
         # Restituisce la lista delle prenotazioni
@@ -362,8 +364,8 @@ def create_booking(user_id, check_in, check_out, guests, room_types):
         return {
             "message": "Prenotazione effettuata con successo",
             "booking_id": new_booking.id,
-            "check_in": check_in_date.strftime('%Y-%m-%d'),
-            "check_out": check_out_date.strftime('%Y-%m-%d'),
+            "check_in": check_in_date.strftime('%Y/%m/%d'),
+            "check_out": check_out_date.strftime('%Y/%m/%d'),
             "guests": guests,
             "rooms": booked_rooms_info,
             "total_price": total_price
@@ -373,60 +375,77 @@ def create_booking(user_id, check_in, check_out, guests, room_types):
         db.session.rollback()
         raise Exception(f"Errore durante la creazione della prenotazione: {e}")
 
-def cancel_booking_by_id(booking_id, user_id):
+def cancel_bookings_by_id(booking_ids, user_id):
     try:
         # Recupera l'utente dal database
         user = User.query.get(user_id)
         if not user:
             raise ValueError("Utente non trovato")
 
-        # Se l'utente è un admin, può cancellare qualsiasi prenotazione
-        if user.role == 'admin':
-            booking = Booking.query.filter_by(id=booking_id).first()
-        else:
-            # Altrimenti, può cancellare solo le proprie prenotazioni
-            booking = Booking.query.filter_by(id=booking_id, user_id=user_id).first()
+        canceled_bookings_details = []
 
-        if not booking:
-            raise ValueError("Prenotazione non trovata")
+        for booking_id in booking_ids:
+            # Se l'utente è un admin, può cancellare qualsiasi prenotazione
+            if user.role == 'admin':
+                booking = Booking.query.filter_by(id=booking_id).first()
+            else:
+                # Altrimenti, può cancellare solo le proprie prenotazioni
+                booking = Booking.query.filter_by(id=booking_id, user_id=user_id).first()
 
-        if booking.status == 'canceled':
-            raise ValueError("La prenotazione è già stata cancellata")
+            if not booking:
+                raise ValueError(f"Prenotazione con ID {booking_id} non trovata")
 
-        # Imposta lo stato della prenotazione a 'canceled'
-        booking.status = 'canceled'
-        db.session.commit()
+            if booking.status == 'canceled':
+                raise ValueError(f"La prenotazione con ID {booking_id} è già stata cancellata")
 
-        # Prepara i dettagli delle stanze prenotate
-        booked_rooms_info = [{
-            "room_id": room.room.id,
-            "room_number": room.room.number,
-            "room_type": room.room.room_type,
-            "price": room.room.price
-        } for room in booking.rooms]
+            # Imposta lo stato della prenotazione a 'canceled'
+            booking.status = 'canceled'
+            db.session.commit()
 
-        # Restituisce i dettagli della prenotazione cancellata
-        return {
-            "booking_id": booking.id,
-            "check_in": booking.check_in.strftime('%Y-%m-%d'),
-            "check_out": booking.check_out.strftime('%Y-%m-%d'),
-            "guests": booking.guests,
-            "rooms": booked_rooms_info,
-            "status": booking.status
+
+            user_bookings = get_user_bookings(user_id)  
+            # Prepara i dettagli delle stanze della prenotazione cancellata
+            booked_rooms_info = [{
+                "room_id": room.room.id,
+                "room_number": room.room.number,
+                "room_type": room.room.room_type,
+                "price": room.room.price
+            } for room in booking.rooms]
+
+            # Aggiunge i dettagli della prenotazione cancellata alla lista
+            canceled_bookings_details.append({
+                "booking_id": booking.id,
+                "check_in": booking.check_in.strftime('%Y/%m/%d'),
+                "check_out": booking.check_out.strftime('%Y/%m/%d'),
+                "guests": booking.guests,
+                "rooms": booked_rooms_info,
+                "status": booking.status
+            })
+
+        # Restituisce i dettagli delle prenotazioni cancellate
+        return { 
+            "canceled_bookings_details" :canceled_bookings_details,
+            "user_bookings": user_bookings  
         }
     except Exception as e:
-        raise Exception(f"Errore durante la cancellazione della prenotazione: {e}")
+        raise Exception(f"Errore durante la cancellazione delle prenotazioni: {e}")
 
+# Modifica una prenotazione:  prima la cancellazione e poi la creazione di una nuova prenotazione
 def modify_booking(booking_id, user_id, new_check_in, new_check_out, new_guests, new_room_types):
     try:
-        # Cancella la prenotazione esistente
-        cancel_booking_by_id(booking_id, user_id)
+        # Cancella la prenotazione esistente e ottiene i dettagli della prenotazione cancellata
+        canceled_booking_details = cancel_booking_by_id(booking_id, user_id)
 
         # Crea una nuova prenotazione
         new_booking_details = create_booking(user_id, new_check_in, new_check_out, new_guests, new_room_types)
 
-        # Restituisce i dettagli della nuova prenotazione
-        return new_booking_details
+        user_bookings = get_user_bookings(user_id)
+        # Restituisce i dettagli della prenotazione cancellata e della nuova prenotazione
+        return {
+            "canceled_booking": canceled_booking_details,
+            "new_booking": new_booking_details,
+            "user_bookings": user_bookings
+        }
     except Exception as e:
         raise Exception(f"Errore durante la modifica della prenotazione: {e}")
 
