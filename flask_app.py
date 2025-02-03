@@ -303,8 +303,8 @@ def get_user_bookings(user_id):
         # Crea una lista di dizionari con i dettagli delle prenotazioni
         bookings_list = [{
             "id": booking.id,
-            "check_in": booking.check_in.strftime('%Y/%m/%d'),
-            "check_out": booking.check_out.strftime('%Y/%m/%d'),
+            "check_in": booking.check_in.strftime('%d/%m/%Y'),
+            "check_out": booking.check_out.strftime('%d/%m/%Y'),
             "guests": booking.guests,
             "status": booking.status,
             "rooms": [{"id": room.room.id, "number": room.room.number, "type": room.room.room_type} for room in booking.rooms],
@@ -364,8 +364,8 @@ def create_booking(user_id, check_in, check_out, guests, room_types):
         return {
             "message": "Prenotazione effettuata con successo",
             "booking_id": new_booking.id,
-            "check_in": check_in_date.strftime('%Y/%m/%d'),
-            "check_out": check_out_date.strftime('%Y/%m/%d'),
+            "check_in": check_in_date.strftime('%d/%m/%Y'),
+            "check_out": check_out_date.strftime('%d/%m/%Y'),
             "guests": guests,
             "rooms": booked_rooms_info,
             "total_price": total_price
@@ -415,8 +415,8 @@ def cancel_bookings_by_id(booking_ids, user_id):
             # Aggiunge i dettagli della prenotazione cancellata alla lista
             canceled_bookings_details.append({
                 "booking_id": booking.id,
-                "check_in": booking.check_in.strftime('%Y/%m/%d'),
-                "check_out": booking.check_out.strftime('%Y/%m/%d'),
+                "check_in": booking.check_in.strftime('%d/%m/%Y'),
+                "check_out": booking.check_out.strftime('%d/%m/%Y'),
                 "guests": booking.guests,
                 "rooms": booked_rooms_info,
                 "status": booking.status
