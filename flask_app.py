@@ -325,6 +325,14 @@ def get_user_bookings(user_id):
 
 def create_booking(user_id, check_in, check_out, guests, room_types):
     try:
+         # Verifica che il numero di ospiti sia positivo
+        if guests <= 0:
+            raise ValueError("Il numero di ospiti deve essere positivo.")
+
+        # Verifica che il tipo di stanza non sia vuoto
+        if not room_types:
+            raise ValueError("Deve essere selezionato almeno un tipo di stanza.")
+        
         # Verifica la disponibilità delle stanze
         available_rooms = get_available_rooms(check_in, check_out)
 
@@ -446,6 +454,15 @@ def modify_booking(booking_id, user_id, new_check_in, new_check_out, new_guests,
 
 def get_room_suggestions(check_in, check_out, guests, rooms_requested):
     try:
+         # Verifica che il numero di ospiti sia positivo
+        if guests <= 0:
+            raise ValueError("Il numero di ospiti deve essere positivo.")
+
+        # Verifica che il tipo di stanza non sia vuoto
+        if rooms_requested <= 0:
+            raise ValueError("Deve essere selezionato almeno un tipo di stanza.")
+        
+
         # Verifica la disponibilità delle stanze
         available_rooms = get_available_rooms(check_in, check_out)
 
