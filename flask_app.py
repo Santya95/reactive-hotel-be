@@ -266,9 +266,15 @@ def create_rooms():
 
 def get_available_rooms(check_in_date, check_out_date):
     try:
-        # Converte le date in formato stringa in oggetti datetime
-        check_in = datetime.strptime(check_in_date, '%Y%m%d')
-        check_out = datetime.strptime(check_out_date, '%Y%m%d')
+               # Converte le date in oggetti datetime
+        check_in = datetime.strptime(check_in_date, '%Y%m%d').date()
+        check_out = datetime.strptime(check_out_date, '%Y%m%d').date()
+
+        # Verifica che le date siano valide
+        if check_in == check_out:
+            raise ValueError("La data di check-in e la data di check-out non possono essere la stessa.")
+        if check_out < check_in:
+            raise ValueError("La data di check-out non può essere precedente alla data di check-in.")
 
         # Recupera tutte le stanze dal database
         all_rooms = Room.query.all()
@@ -292,7 +298,7 @@ def get_available_rooms(check_in_date, check_out_date):
         return available_rooms
     except Exception as e:
         # Gestisce eventuali errori durante il recupero delle stanze disponibili
-        raise Exception(f"Errore durante il recupero delle stanze disponibili: {e}")
+        raise Exception(f"{e}")
 
 # Recupera le prenotazioni di un utente dal database dalla più recente
 def get_user_bookings(user_id):
