@@ -264,9 +264,9 @@ def create_rooms():
         # Messaggio se le stanze sono già presenti nel database
         print("Le stanze sono già presenti nel database.")
 
-def get_available_rooms(check_in_date, check_out_date):
+def get_available_rooms(check_in_date, check_out_date, old_booking_id=None):
     try:
-               # Converte le date in oggetti datetime
+        # Converte le date in oggetti datetime
         check_in = datetime.strptime(check_in_date, '%Y%m%d').date()
         check_out = datetime.strptime(check_out_date, '%Y%m%d').date()
 
@@ -290,6 +290,13 @@ def get_available_rooms(check_in_date, check_out_date):
 
         # Ottiene gli ID delle stanze che sono prenotate
         booked_room_ids = {booking_room.room_id for booking in overlapping_bookings for booking_room in booking.rooms}
+
+        # Se old_booking_id è presente, escludi le stanze di quella prenotazione dagli ID delle stanze prenotate
+        if old_booking_id:
+            old_booking = Booking.query.filter_by(id=old_booking_id).first()
+            if old_booking:
+                old_booking_room_ids = {room.room_id for room in old_booking.rooms}
+                booked_room_ids -= old_booking_room_ids
 
         # Filtra le stanze prenotate
         available_rooms = [room for room in all_rooms if room.id not in booked_room_ids]
@@ -452,7 +459,7 @@ def modify_booking(booking_id, user_id, new_check_in, new_check_out, new_guests,
     except Exception as e:
         raise Exception(f"Errore durante la modifica della prenotazione: {e}")
 
-def get_room_suggestions(check_in, check_out, guests, rooms_requested):
+def get_room_suggestions(check_in, check_out, guests, rooms_requested, old_booking_id=None):
     try:
          # Verifica che il numero di ospiti sia positivo
         if guests <= 0:
@@ -464,7 +471,7 @@ def get_room_suggestions(check_in, check_out, guests, rooms_requested):
         
 
         # Verifica la disponibilità delle stanze
-        available_rooms = get_available_rooms(check_in, check_out)
+        available_rooms = get_available_rooms(check_in, check_out, old_booking_id)
 
         # Verifica se la capacità totale delle stanze disponibili può ospitare gli ospiti
         total_capacity = sum(room.capacity for room in available_rooms)
@@ -638,6 +645,7 @@ def rooms_per_type_and_suggestion():
     check_out = data.get('check_out')
     guests = data.get('guests')
     rooms_requested = data.get('rooms')
+    old_booking_id = data.get('old_booking_id')
 
     # Verifica che i dati richiesti siano presenti
     if not check_in or not check_out or not guests or not rooms_requested:
@@ -645,7 +653,7 @@ def rooms_per_type_and_suggestion():
 
     try:
         # Ottiene i suggerimenti sulle stanze
-        room_suggestions = get_room_suggestions(check_in, check_out, guests, rooms_requested)
+        room_suggestions = get_room_suggestions(check_in, check_out, guests, rooms_requested, old_booking_id)
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
