@@ -2,7 +2,7 @@
 
 Questo progetto utilizza variabili d'ambiente per configurare il database, l'autenticazione JWT e la gestione delle stanze.
 
-📌 Come Configurare il File .env
+## 📌 Come Configurare il File .env
 
 Crea un file .env nella directory principale del progetto e inserisci le seguenti variabili con i valori appropriati.
 
