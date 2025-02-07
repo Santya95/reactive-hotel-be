@@ -444,7 +444,7 @@ def cancel_booking_by_id(booking_id, user_id):
 def modify_booking(booking_id, user_id, new_check_in, new_check_out, new_guests, new_room_types):
     try:
         # Cancella la prenotazione esistente e ottiene i dettagli della prenotazione cancellata
-        canceled_booking_details = cancel_bookings_by_id(booking_id, user_id)
+        canceled_booking_details = cancel_booking_by_id(booking_id, user_id)
 
         # Crea una nuova prenotazione
         new_booking_details = create_booking(user_id, new_check_in, new_check_out, new_guests, new_room_types)
